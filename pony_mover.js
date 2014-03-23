@@ -1,24 +1,124 @@
-function PonyMover($pony, $log) {
-  this.$pony = $pony
+function PonyMover(pony, $log) {
+  this.pony = pony
   this.$log = $log
 
   // Stack of all the moves. Eg.: ['left', 'up', 'down']
-  this.moves = []
+  this.commands = []
+}
+
+// Base class for commands
+
+function Command(pony) {
+  this.pony = pony;
+}
+
+// Helper methods
+
+Command.prototype.move = function(direction) {
+  switch (direction) {
+    case 'up':
+      this.pony.animate({'top': '-=30px'});
+      break;
+    case 'down':
+      this.pony.animate({'top': '+=30px'});
+      break;
+    case 'left':
+      this.pony.animate({'left': '-=30px'});
+      break;
+    case 'right':
+      this.pony.animate({'left': '+=30px'});
+      break;
+  }
+}
+
+// Commands
+
+function MoveUpCommand(pony) {
+  Command.call(this, pony);
+}
+
+MoveUpCommand.prototype = Object.create(Command.prototype);
+MoveUpCommand.prototype.constructor = MoveUpCommand;
+
+MoveUpCommand.prototype.run = function() {
+  this.move('up');
+}
+
+MoveUpCommand.prototype.undo = function() {
+  this.move('down');
+}
+
+function MoveDownCommand(pony) {
+  Command.call(this, pony);
+}
+
+MoveDownCommand.prototype = Object.create(Command.prototype);
+MoveDownCommand.prototype.constructor = MoveDownCommand;
+
+MoveDownCommand.prototype.run = function() {
+  this.move('down');
+}
+
+MoveDownCommand.prototype.undo = function() {
+  this.move('up');
+}
+
+function MoveLeftCommand(pony) {
+  Command.call(this, pony);
+}
+
+MoveLeftCommand.prototype = Object.create(Command.prototype);
+MoveLeftCommand.prototype.constructor = MoveLeftCommand;
+
+MoveLeftCommand.prototype.run = function() {
+  this.move('left');
+}
+
+MoveLeftCommand.prototype.undo = function() {
+  this.move('right');
+}
+
+function MoveRightCommand(pony) {
+  Command.call(this, pony);
+}
+
+MoveRightCommand.prototype = Object.create(Command.prototype);
+MoveRightCommand.prototype.constructor = MoveRightCommand;
+
+MoveRightCommand.prototype.run = function() {
+  this.move('right');
+}
+
+MoveRightCommand.prototype.undo = function() {
+  this.move('left');
+}
+
+PonyMover.prototype.createCommand = function(direction){
+  switch (direction) {
+    case 'up':
+      return new MoveUpCommand(this.pony);
+    case 'down': 
+      return new MoveDownCommand(this.pony);
+    case 'left':
+      return new MoveLeftCommand(this.pony);
+    case 'right': 
+      return new MoveRightCommand(this.pony);
+  }
 }
 
 PonyMover.prototype.moveDirection = function(direction) {
   switch (direction) {
     case 'up':
-      this.$pony.animate({'top': '-=30px'})
+      this.pony.animate({'top': '-=30px'})
       break
     case 'down':
-      this.$pony.animate({'top': '+=30px'})
+      this.pony.animate({'top': '+=30px'})
       break
     case 'left':
-      this.$pony.animate({'left': '-=30px'})
+      this.pony.animate({'left': '-=30px'})
       break
     case 'right':
-      this.$pony.animate({'left': '+=30px'})
+      this.pony.animate({'left': '+=30px'})
       break
   }
 }
@@ -27,27 +127,17 @@ PonyMover.prototype.move = function(keyCode) {
   var direction = keyCodeToName[keyCode] // Convert key code to direction name
 
   if (direction) {
-    this.moveDirection(direction)
-    this.moves.push(direction)
+    var command = this.createCommand(direction);
+    command.run();
+    this.commands.push(command);
     this.$log.append('<li>' + direction + '</li>')
   }
 }
 
-PonyMover.prototype.oppositeDirections = {
-  'up': 'down',
-  'down': 'up',
-  'left': 'right',
-  'right': 'left'
-}
-
-PonyMover.prototype.undo = function() {
-  // Get the last move
-  var direction = this.moves.pop()
-
-  if (direction) {
-    var oppositeDirection = this.oppositeDirections[direction]
-
-    this.moveDirection(oppositeDirection)
-    this.$log.find('li:last').remove()
+PonyMover.prototype.undo = function(){
+  var command = this.commands.pop();
+  if (command) {
+    command.undo();
+    this.$log.find('li:last').remove();
   }
 }
